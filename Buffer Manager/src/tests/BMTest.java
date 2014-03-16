@@ -13,11 +13,10 @@ import chainexception.*;
  * This class provides the functions to test the buffer manager
  */
 
- 
 class BMDriver extends TestDriver implements GlobalConst {
 
-//	private int TRUE = 1;
-//	private int FALSE = 0;
+	// private int TRUE = 1;
+	// private int FALSE = 0;
 	private boolean OK = true;
 	private boolean FAIL = false;
 
@@ -38,9 +37,7 @@ class BMDriver extends TestDriver implements GlobalConst {
 		try {
 			SystemDefs sysdef = new SystemDefs(dbpath, NUMBUF + 20, NUMBUF,
 					"Clock");
-		}
-
-		catch (Exception e) {
+		} catch (Exception e) {
 			Runtime.getRuntime().exit(1);
 		}
 
@@ -49,8 +46,8 @@ class BMDriver extends TestDriver implements GlobalConst {
 		String newlogpath;
 		String remove_logcmd;
 		String remove_dbcmd;
-//		String remove_cmd = "cmd /k del";
-		 String remove_cmd = "/bin/rm -rf ";
+		String remove_cmd = "cmd /k del";
+		// String remove_cmd = "/bin/rm -rf ";
 
 		newdbpath = dbpath;
 		newlogpath = logpath;
@@ -609,7 +606,6 @@ class BMDriver extends TestDriver implements GlobalConst {
 		return "Buffer Management";
 	}
 }
-
 
 public class BMTest {
 

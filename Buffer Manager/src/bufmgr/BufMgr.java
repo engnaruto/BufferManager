@@ -7,7 +7,7 @@ import diskmgr.*;
 import global.*;
 
 public class BufMgr {
-
+	private int numBufs;
 	private byte[][] bufpool;
 	private Descriptor[] bufDescr;
 	private HashMap<PageId, Integer> map;
@@ -24,10 +24,15 @@ public class BufMgr {
 	 *            name of the buffer replacement policy
 	 * */
 	public BufMgr(int numBufs, String replaceArg) {
+		this.numBufs = numBufs;
 		bufpool = new byte[numBufs][GlobalConst.MINIBASE_PAGESIZE];
 		bufDescr = new Descriptor[numBufs];
 		map = new HashMap<PageId, Integer>();
 		replacement = new ReplacementPolicy(numBufs, replaceArg);
+
+		for (int i = 0; i < bufDescr.length; i++) {
+			bufDescr[i] = new Descriptor();
+		}
 	}
 
 	/**
@@ -54,11 +59,17 @@ public class BufMgr {
 		if (pageFrame == -1) {
 			int freeFrame = replacement.getFreeFrame();
 
+
 			if (bufDescr[freeFrame].dirtybit) {
 				flushPage(bufDescr[freeFrame].pagenumber);
 				bufDescr[freeFrame].dirtybit = false;
+				map.remove(bufDescr[freeFrame].pagenumber);
 			}
+			
+			map.put(pgid, freeFrame);
+
 			Page newPage = new Page();
+			
 			try {
 				SystemDefs.JavabaseDB.read_page(pgid, newPage);
 			} catch (InvalidPageNumberException e) {
@@ -68,20 +79,23 @@ public class BufMgr {
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-			if (bufDescr[freeFrame].pagenumber != null) {
-				map.remove(bufDescr[freeFrame].pagenumber);
-			}
-			bufpool[freeFrame] = page.getpage();
-			bufDescr[freeFrame].pagenumber = pgid;
-			bufDescr[freeFrame].pin_count++;
-			map.put(pgid, freeFrame);
+			bufpool[freeFrame] = newPage.getpage();
 			page.setpage(bufpool[freeFrame]);
+
+			bufDescr[freeFrame] = new Descriptor(pgid, 1);
+
 			replacement.incrementIfFIFO(freeFrame);
+
+			System.out.println("--Pin " + pgid + "\tat frame " + freeFrame);
 		} else {
 			bufDescr[pageFrame].pin_count++;
-			replacement.incrementIfFIFO(pageFrame);
+			// System.out.println("------------------------------");
+			// replacement.incrementIfFIFO(pageFrame);
 			replacement.removeFrame(pageFrame);
+			// System.out.println("------------------------------");
 			page.setpage(bufpool[pageFrame]);
+			System.out.println("--Inc " + pgid + "\tat frame " + pageFrame
+					+ "\tPin_Count " + bufDescr[pageFrame].pin_count);
 		}
 	}
 
@@ -123,9 +137,12 @@ public class BufMgr {
 
 				if (bufDescr[frame].pin_count == 0) {
 					replacement.returnFrame(frame);
-				} else {
-					replacement.decrementIfFIFO(frame);
+
+					// map.remove(pgid);
 				}
+				replacement.decrementIfFIFO(frame);
+				System.out
+						.println("--Unp " + pgid + "\tat frame " + frame);
 			}
 		} else {
 			try {
@@ -236,6 +253,14 @@ public class BufMgr {
 			}
 		}
 
+	}
+
+	public void flushAllPages() {
+		for (int i = 0; i < numBufs; i++) {
+			if (bufDescr[i].pagenumber != null) {
+				flushPage(bufDescr[i].pagenumber);
+			}
+		}
 	}
 
 	public int getNumUnpinnedBuffers() {

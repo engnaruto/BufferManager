@@ -1,5 +1,6 @@
 package bufmgr;
 
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Stack;
@@ -14,10 +15,14 @@ public class ReplacementPolicy {
 	// Love/Hate ?????
 
 	public ReplacementPolicy(int numBufs, String replaceArg) {
+		System.out.println("numBufs = " + numBufs + " replaceArg = "
+				+ replaceArg);
 		unpinnedBufs = numBufs;
 		this.replaceArg = replaceArg;
-		if (replaceArg.equals("FIFO")) {
+		if (replaceArg.equals("FIFO") || replaceArg.equals("Clock")) {
 			fifo = new int[numBufs];
+			Arrays.fill(fifo, -1);
+			this.replaceArg = "FIFO";
 		} else if (replaceArg.equals("LRU")) {
 			lru = new LinkedList<Integer>();
 			for (int i = 0; i < numBufs; i++) {
@@ -45,13 +50,20 @@ public class ReplacementPolicy {
 
 	public void incrementIfFIFO(int frame) {
 		if (replaceArg.equals("FIFO")) {
-			fifo[frame]++;
+			if (fifo[frame] == -1) {
+				fifo[frame] = 1;
+			} else {
+				fifo[frame]++;
+			}
 		}
+//		System.out.println(fifo[frame]);
 	}
 
 	public void decrementIfFIFO(int frame) {
 		if (replaceArg.equals("FIFO")) {
-			fifo[frame]--;
+			if (fifo[frame] > 0) {
+				fifo[frame]--;
+			}
 		}
 	}
 
@@ -105,6 +117,12 @@ public class ReplacementPolicy {
 	private int getFIFO() {
 
 		for (int i = 0; i < fifo.length; i++) {
+			// System.out.println(Arrays.toString(fifo));
+			if (fifo[i] == -1) {
+				return i;
+			}
+		}
+		for (int i = 0; i < fifo.length; i++) {
 			if (fifo[i] == 0) {
 				return i;
 			}
@@ -153,6 +171,7 @@ public class ReplacementPolicy {
 	// --------------Remove-----------------
 	private void removeFIFO(int frameNum) {
 		fifo[frameNum]++;
+//		System.out.println(fifo[frameNum]);
 	}
 
 	private void removeMRU(int frameNum) {

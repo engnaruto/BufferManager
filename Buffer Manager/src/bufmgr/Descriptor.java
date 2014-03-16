@@ -13,6 +13,12 @@ public class Descriptor {
 		dirtybit = false;
 	}
 
+	public Descriptor(PageId pageId, int pin) {
+		pin_count = pin;
+		pagenumber = pageId;
+		dirtybit = false;
+	}
+
 	public int getPin_count() {
 		return pin_count;
 	}
