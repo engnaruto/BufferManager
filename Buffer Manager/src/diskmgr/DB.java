@@ -2,8 +2,9 @@
 
 package diskmgr;
 
-import global.*;
 import java.io.*;
+import bufmgr.*;
+import global.*;
 
 public class DB implements GlobalConst {
 

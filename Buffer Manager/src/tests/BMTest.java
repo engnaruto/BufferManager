@@ -1,7 +1,10 @@
 package tests;
 
 import java.io.*;
+import java.util.*;
+import java.lang.*;
 import global.*;
+import bufmgr.*;
 import diskmgr.*;
 import chainexception.*;
 
@@ -12,11 +15,10 @@ import chainexception.*;
 /**
  * This class provides the functions to test the buffer manager
  */
-
 class BMDriver extends TestDriver implements GlobalConst {
 
-	// private int TRUE = 1;
-	// private int FALSE = 0;
+	private int TRUE = 1;
+	private int FALSE = 0;
 	private boolean OK = true;
 	private boolean FAIL = false;
 
@@ -37,7 +39,9 @@ class BMDriver extends TestDriver implements GlobalConst {
 		try {
 			SystemDefs sysdef = new SystemDefs(dbpath, NUMBUF + 20, NUMBUF,
 					"Clock");
-		} catch (Exception e) {
+		}
+
+		catch (Exception e) {
 			Runtime.getRuntime().exit(1);
 		}
 
@@ -108,25 +112,21 @@ class BMDriver extends TestDriver implements GlobalConst {
 		if (!test1()) {
 			_passAll = FAIL;
 		}
-		try {
-			if (!test2()) {
-				_passAll = FAIL;
-			}
-		} catch (ChainException e) {
-			e.printStackTrace();
-		}
-		if (!test3()) {
-			_passAll = FAIL;
-		}
-		if (!test4()) {
-			_passAll = FAIL;
-		}
-		if (!test5()) {
-			_passAll = FAIL;
-		}
-		if (!test6()) {
-			_passAll = FAIL;
-		}
+//		if (!test2()) {
+//			_passAll = FAIL;
+//		}
+//		if (!test3()) {
+//			_passAll = FAIL;
+//		}
+//		if (!test4()) {
+//			_passAll = FAIL;
+//		}
+//		if (!test5()) {
+//			_passAll = FAIL;
+//		}
+//		if (!test6()) {
+//			_passAll = FAIL;
+//		}
 
 		return _passAll;
 	}
@@ -295,7 +295,7 @@ class BMDriver extends TestDriver implements GlobalConst {
 	 * 
 	 * @return whether test2 has passed
 	 */
-	protected boolean test2() throws ChainException {
+	protected boolean test2() {
 
 		System.out.print("\n  Test 2 exercises some illegal buffer "
 				+ "manager operations:\n");
@@ -609,7 +609,7 @@ class BMDriver extends TestDriver implements GlobalConst {
 
 public class BMTest {
 
-	public static void main(String[] args) {
+	public static void main(String argv[]) {
 
 		BMDriver bmt = new BMDriver();
 		boolean dbstatus;

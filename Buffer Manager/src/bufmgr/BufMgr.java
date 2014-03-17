@@ -8,9 +8,11 @@ import global.*;
 
 public class BufMgr {
 	private int numBufs;
+	private int counter;
 	private byte[][] bufpool;
 	private Descriptor[] bufDescr;
-	private HashMap<PageId, Integer> map;
+	private HashMap<Integer, Integer> map;
+	// private HashMap<PageId, Integer> map;
 	private ReplacementPolicy replacement;
 
 	/**
@@ -25,9 +27,11 @@ public class BufMgr {
 	 * */
 	public BufMgr(int numBufs, String replaceArg) {
 		this.numBufs = numBufs;
+		counter = 0;
 		bufpool = new byte[numBufs][GlobalConst.MINIBASE_PAGESIZE];
 		bufDescr = new Descriptor[numBufs];
-		map = new HashMap<PageId, Integer>();
+		map = new HashMap<Integer, Integer>();
+		// map = new HashMap<PageId, Integer>();
 		replacement = new ReplacementPolicy(numBufs, replaceArg);
 
 		for (int i = 0; i < bufDescr.length; i++) {
@@ -55,23 +59,26 @@ public class BufMgr {
 	 */
 	public void pinPage(PageId pgid, Page page, boolean emptyPage, boolean loved) {
 		int pageFrame = getFrameNum(pgid);
-
 		if (pageFrame == -1) {
-			int freeFrame = replacement.getFreeFrame();
-
+			int freeFrame;
+			if (counter != numBufs) {
+				freeFrame = counter++;
+			} else {
+				freeFrame = replacement.getFreeFrame();
+			}
 
 			if (bufDescr[freeFrame].dirtybit) {
 				flushPage(bufDescr[freeFrame].pagenumber);
-				bufDescr[freeFrame].dirtybit = false;
 				map.remove(bufDescr[freeFrame].pagenumber);
 			}
-			
-			map.put(pgid, freeFrame);
 
-			Page newPage = new Page();
-			
+			map.put(pgid.pid, freeFrame);
+
+			// Page newPage = new Page();
+
 			try {
-				SystemDefs.JavabaseDB.read_page(pgid, newPage);
+				SystemDefs.JavabaseDB.read_page(pgid, page);
+				// SystemDefs.JavabaseDB.read_page(pgid, newPage);
 			} catch (InvalidPageNumberException e) {
 				e.printStackTrace();
 			} catch (FileIOException e) {
@@ -79,11 +86,13 @@ public class BufMgr {
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-			bufpool[freeFrame] = newPage.getpage();
+			bufpool[freeFrame] = page.getpage();
+			// bufpool[freeFrame] = newPage.getpage();
 			page.setpage(bufpool[freeFrame]);
 
 			bufDescr[freeFrame] = new Descriptor(pgid, 1);
-
+			// System.out.println("--Buf ID " + freeFrame + " "
+			// + bufDescr[freeFrame].toString());
 			replacement.incrementIfFIFO(freeFrame);
 
 			System.out.println("--Pin " + pgid + "\tat frame " + freeFrame);
@@ -97,6 +106,7 @@ public class BufMgr {
 			System.out.println("--Inc " + pgid + "\tat frame " + pageFrame
 					+ "\tPin_Count " + bufDescr[pageFrame].pin_count);
 		}
+		// System.out.println(map.toString());
 	}
 
 	/**
@@ -116,7 +126,7 @@ public class BufMgr {
 
 		int frame = getFrameNum(pgid);
 
-		if (map.containsKey(pgid)) {
+		if (map.containsKey(pgid.pid)) {
 
 			if (bufDescr[frame].pin_count == 0) {
 				try {
@@ -139,10 +149,12 @@ public class BufMgr {
 					replacement.returnFrame(frame);
 
 					// map.remove(pgid);
+				} else {
+					replacement.decrementIfFIFO(frame);
 				}
-				replacement.decrementIfFIFO(frame);
-				System.out
-						.println("--Unp " + pgid + "\tat frame " + frame);
+				// System.out.println("--Buf ID " + frame + " "
+				// + bufDescr[frame].toString());
+				System.out.println("--Unp " + pgid + "\tat frame " + frame);
 			}
 		} else {
 			try {
@@ -225,6 +237,7 @@ public class BufMgr {
 	 *            the page number in the database.
 	 */
 	public void flushPage(PageId pgid) {
+		System.out.println("--Flush " + pgid);
 		int frameNum = getFrameNum(pgid);
 		if (frameNum == -1) {
 			try {
@@ -233,15 +246,13 @@ public class BufMgr {
 			} catch (PageIdNotInTheBufferPoolExcpetion e) {
 				e.printStackTrace();
 			}
-
 		} else {
 			try {
-
 				Page newPage = new Page(bufpool[frameNum]);
-				// SystemDefs.JavabaseDB.allocate_page(newPageId);
-				SystemDefs.JavabaseDB.write_page(pgid, newPage);
-				bufDescr[frameNum].dirtybit = false;
-
+				if (bufDescr[frameNum].dirtybit) {
+					SystemDefs.JavabaseDB.write_page(pgid, newPage);
+					bufDescr[frameNum].dirtybit = false;
+				}
 			} catch (InvalidPageNumberException e) {
 				e.printStackTrace();
 			} catch (FileIOException e) {
@@ -256,8 +267,12 @@ public class BufMgr {
 	}
 
 	public void flushAllPages() {
+		System.out.println("---Flush All Pages---");
 		for (int i = 0; i < numBufs; i++) {
 			if (bufDescr[i].pagenumber != null) {
+				System.out.println("--All Flush " + bufDescr[i].pagenumber);
+				System.out.println("--Buf ID " + i + " "
+						+ bufDescr[i].toString());
 				flushPage(bufDescr[i].pagenumber);
 			}
 		}
@@ -276,8 +291,10 @@ public class BufMgr {
 	// }
 
 	public int getFrameNum(PageId pageId) {
-		if (map.containsKey(pageId)) {
-			return map.get(pageId);
+		System.out.println("--Get " + pageId);
+		System.out.println(map.toString());
+		if (map.containsKey(pageId.pid)) {
+			return map.get(pageId.pid);
 		} else {
 			return -1;
 		}

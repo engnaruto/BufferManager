@@ -43,4 +43,9 @@ public class Descriptor {
 		this.dirtybit = dirtybit;
 	}
 
+	@Override
+	public String toString() {
+		return pagenumber + " " + pin_count + " " + dirtybit;
+	}
+
 }

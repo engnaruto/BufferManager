@@ -1,6 +1,8 @@
 package tests;
 
 import java.io.*;
+import java.util.*;
+import java.lang.*;
 import chainexception.*;
 
 //    Major Changes:
@@ -52,13 +54,12 @@ public class TestDriver {
 		// still work well because this feature is not meant to be UNIX
 		// dependent.
 
-		// dbpath = "/tmp/" + nameRoot + System.getProperty("user.name")
-		// + ".minibase-db";
-		// logpath = "/tmp/" + nameRoot + System.getProperty("user.name")
-		// + ".minibase-log";
-
 		dbpath = "C:\\Users\\Naruto\\.minibase-db";
 		logpath = "C:\\Users\\Naruto\\.minibase-log";
+		// dbpath =
+		// "/tmp/"+nameRoot+System.getProperty("user.name")+".minibase-db";
+		// logpath = "/tmp/"+nameRoot
+		// +System.getProperty("user.name")+".minibase-log";
 	}
 
 	/**
@@ -77,9 +78,8 @@ public class TestDriver {
 
 	/**
 	 * @return whether the test has completely successfully
-	 * @throws ChainException
 	 */
-	protected boolean test2() throws ChainException {
+	protected boolean test2() {
 		return true;
 	}
 
@@ -208,12 +208,8 @@ public class TestDriver {
 		if (!test1()) {
 			_passAll = FAIL;
 		}
-		try {
-			if (!test2()) {
-				_passAll = FAIL;
-			}
-		} catch (ChainException e) {
-			e.printStackTrace();
+		if (!test2()) {
+			_passAll = FAIL;
 		}
 		if (!test3()) {
 			_passAll = FAIL;
