@@ -112,21 +112,21 @@ class BMDriver extends TestDriver implements GlobalConst {
 		if (!test1()) {
 			_passAll = FAIL;
 		}
-//		if (!test2()) {
-//			_passAll = FAIL;
-//		}
-//		if (!test3()) {
-//			_passAll = FAIL;
-//		}
-//		if (!test4()) {
-//			_passAll = FAIL;
-//		}
-//		if (!test5()) {
-//			_passAll = FAIL;
-//		}
-//		if (!test6()) {
-//			_passAll = FAIL;
-//		}
+		// if (!test2()) {
+		// _passAll = FAIL;
+		// }
+		// if (!test3()) {
+		// _passAll = FAIL;
+		// }
+		// if (!test4()) {
+		// _passAll = FAIL;
+		// }
+		// if (!test5()) {
+		// _passAll = FAIL;
+		// }
+		// if (!test6()) {
+		// _passAll = FAIL;
+		// }
 
 		return _passAll;
 	}
@@ -200,6 +200,11 @@ class BMDriver extends TestDriver implements GlobalConst {
 
 				try {
 					Convert.setIntValue(data, 0, pg.getpage());
+					// if (pid.pid == 54) {
+					// int dataa = Convert.getIntValue(0, pg.getpage());
+					// System.out.println("----\tDataaaa at " + pid.pid + " = "
+					// + (dataa - pid.pid));
+					// }
 				} catch (IOException e) {
 					System.err.print("*** Convert value failed\n");
 					status = FAIL;
@@ -209,6 +214,11 @@ class BMDriver extends TestDriver implements GlobalConst {
 					try {
 						SystemDefs.JavabaseBM.unpinPage(pid, /* dirty: */true,
 								false);
+						// if (pid.pid == 54) {
+						int dataa = Convert.getIntValue(0, pg.getpage());
+						System.out.println("----\tDataaaa at " + pid.pid
+								+ " = " + (dataa - pid.pid));
+						// }
 					} catch (Exception e) {
 						status = FAIL;
 						System.err.print("*** Could not unpin dirty page "
@@ -241,6 +251,8 @@ class BMDriver extends TestDriver implements GlobalConst {
 
 				try {
 					data = Convert.getIntValue(0, pg.getpage());
+					System.out.println(">>Data at " + pid.pid + " = "
+							+ (data - pid.pid));
 				} catch (IOException e) {
 					System.err.print("*** Convert value failed \n");
 					status = FAIL;
@@ -251,6 +263,7 @@ class BMDriver extends TestDriver implements GlobalConst {
 						status = FAIL;
 						System.err.print("*** Read wrong data back from page "
 								+ pid.pid + "\n");
+						return false;
 					}
 				}
 

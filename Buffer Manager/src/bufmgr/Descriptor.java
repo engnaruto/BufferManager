@@ -3,9 +3,9 @@ package bufmgr;
 import global.PageId;
 
 public class Descriptor {
-	protected int pin_count;
-	protected PageId pagenumber;
-	protected boolean dirtybit;
+	private int pin_count;
+	private PageId pagenumber;
+	private boolean dirtybit;
 
 	public Descriptor() {
 		pin_count = 0;
@@ -15,7 +15,7 @@ public class Descriptor {
 
 	public Descriptor(PageId pageId, int pin) {
 		pin_count = pin;
-		pagenumber = pageId;
+		pagenumber = new PageId(pageId.pid);
 		dirtybit = false;
 	}
 

@@ -1,14 +1,12 @@
 package bufmgr;
 
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.Queue;
-import java.util.Stack;
+import java.util.*;
 
 public class ReplacementPolicy {
 	private int unpinnedBufs;
 	private String replaceArg;
-	private int[] fifo;
+	private PriorityQueue<Integer> fifo;
+	// private int[] fifo;
 	private Queue<Integer> lru;
 	private Stack<Integer> mru;
 
@@ -20,8 +18,9 @@ public class ReplacementPolicy {
 		unpinnedBufs = numBufs;
 		this.replaceArg = replaceArg;
 		if (replaceArg.equals("FIFO") || replaceArg.equals("Clock")) {
-			fifo = new int[numBufs];
-			Arrays.fill(fifo, -1);
+			fifo = new PriorityQueue<Integer>();
+			// fifo = new int[numBufs];
+			// Arrays.fill(fifo, -1);
 			this.replaceArg = "FIFO";
 		} else if (replaceArg.equals("LRU")) {
 			lru = new LinkedList<Integer>();
@@ -49,22 +48,22 @@ public class ReplacementPolicy {
 	}
 
 	public void incrementIfFIFO(int frame) {
-		if (replaceArg.equals("FIFO")) {
-			if (fifo[frame] == -1) {
-				fifo[frame] = 1;
-			} else {
-				fifo[frame]++;
-			}
-		}
-//		System.out.println(fifo[frame]);
+		// if (replaceArg.equals("FIFO")) {
+		// if (fifo[frame] == -1) {
+		// fifo[frame] = 1;
+		// } else {
+		// fifo[frame]++;
+		// }
+		// }
+		// System.out.println(fifo[frame]);
 	}
 
 	public void decrementIfFIFO(int frame) {
-		if (replaceArg.equals("FIFO")) {
-			if (fifo[frame] > 0) {
-				fifo[frame]--;
-			}
-		}
+		// if (replaceArg.equals("FIFO")) {
+		// if (fifo[frame] > 0) {
+		// fifo[frame]--;
+		// }
+		// }
 	}
 
 	public int getFreeFrame() {
@@ -115,24 +114,28 @@ public class ReplacementPolicy {
 	// --------------Get-----------------
 
 	private int getFIFO() {
-
-		for (int i = 0; i < fifo.length; i++) {
-			// System.out.println(Arrays.toString(fifo));
-			if (fifo[i] == -1) {
-				return i;
+		if (!fifo.isEmpty()) {
+			return fifo.poll();
+			// for (int i = 0; i < fifo.length; i++) {
+			// // System.out.println(Arrays.toString(fifo));
+			// if (fifo[i] == -1) {
+			// return i;
+			// }
+			// }
+			// for (int i = 0; i < fifo.length; i++) {
+			// if (fifo[i] == 0) {
+			// return i;
+			// }
+			// }
+		} else {
+			try {
+				throw new FullBufferPoolExcpetion(null,
+						"FullBufferPoolExcpetion");
+			} catch (FullBufferPoolExcpetion e) {
+				e.printStackTrace();
 			}
+			return -1;
 		}
-		for (int i = 0; i < fifo.length; i++) {
-			if (fifo[i] == 0) {
-				return i;
-			}
-		}
-		try {
-			throw new FullBufferPoolExcpetion(null, "FullBufferPoolExcpetion");
-		} catch (FullBufferPoolExcpetion e) {
-			e.printStackTrace();
-		}
-		return -1;
 	}
 
 	private int getLRU() {
@@ -170,8 +173,9 @@ public class ReplacementPolicy {
 
 	// --------------Remove-----------------
 	private void removeFIFO(int frameNum) {
-		fifo[frameNum]++;
-//		System.out.println(fifo[frameNum]);
+		// fifo[frameNum]++;
+		// System.out.println(fifo[frameNum]);
+		fifo.remove(new Integer(frameNum));
 	}
 
 	private void removeMRU(int frameNum) {
@@ -189,7 +193,8 @@ public class ReplacementPolicy {
 	// --------------Return-----------------
 
 	private void returnFIFO(int frameNum) {
-		fifo[frameNum] = 0;
+		// fifo[frameNum] = 0;
+		fifo.add(frameNum);
 	}
 
 	private void returnMRU(int frameNum) {
