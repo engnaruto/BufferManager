@@ -4,9 +4,11 @@ import java.util.*;
 
 public class ReplacementPolicy {
 	private int unpinnedBufs;
+	private int bufferSize;
+	private int counter;
 	private String replaceArg;
 	private PriorityQueue<Integer> fifo;
-	// private int[] fifo;
+
 	private Queue<Integer> lru;
 	private Stack<Integer> mru;
 
@@ -15,12 +17,12 @@ public class ReplacementPolicy {
 	public ReplacementPolicy(int numBufs, String replaceArg) {
 		System.out.println("numBufs = " + numBufs + " replaceArg = "
 				+ replaceArg);
+		bufferSize = numBufs;
 		unpinnedBufs = numBufs;
+		counter = 0;
 		this.replaceArg = replaceArg;
 		if (replaceArg.equals("FIFO") || replaceArg.equals("Clock")) {
 			fifo = new PriorityQueue<Integer>();
-			// fifo = new int[numBufs];
-			// Arrays.fill(fifo, -1);
 			this.replaceArg = "FIFO";
 		} else if (replaceArg.equals("LRU")) {
 			lru = new LinkedList<Integer>();
@@ -47,55 +49,39 @@ public class ReplacementPolicy {
 		return unpinnedBufs;
 	}
 
-	public void incrementIfFIFO(int frame) {
-		// if (replaceArg.equals("FIFO")) {
-		// if (fifo[frame] == -1) {
-		// fifo[frame] = 1;
-		// } else {
-		// fifo[frame]++;
-		// }
-		// }
-		// System.out.println(fifo[frame]);
-	}
-
-	public void decrementIfFIFO(int frame) {
-		// if (replaceArg.equals("FIFO")) {
-		// if (fifo[frame] > 0) {
-		// fifo[frame]--;
-		// }
-		// }
-	}
-
-	public int getFreeFrame() {
-		if (replaceArg.equals("FIFO")) {
-			unpinnedBufs--;
-			return getFIFO();
-		} else if (replaceArg.equals("LRU")) {
-			unpinnedBufs--;
-			return getLRU();
-		} else if (replaceArg.equals("MRU")) {
-			unpinnedBufs--;
-			return getMRU();
+	public int getFreeFrame() throws BufferPoolExceededException {
+		if (unpinnedBufs <= 0) {
+			throw new BufferPoolExceededException(null,
+					"BUFMGR:PAGE_PIN_FAILED");
 		} else {
-			unpinnedBufs--;
-			return getLoveHate();
+			if (counter != bufferSize) {
+				unpinnedBufs--;
+				return counter++;
+			} else {
+				if (replaceArg.equals("FIFO")) {
+					return getFIFO();
+				} else if (replaceArg.equals("LRU")) {
+					return getLRU();
+				} else if (replaceArg.equals("MRU")) {
+					return getMRU();
+				} else {
+					return getLoveHate();
+				}
+			}
 		}
 	}
 
 	public void returnFrame(int frameNum) {
 		if (replaceArg.equals("FIFO")) {
-			unpinnedBufs++;
 			returnFIFO(frameNum);
 		} else if (replaceArg.equals("LRU")) {
-			unpinnedBufs++;
 			returnLRU(frameNum);
 		} else if (replaceArg.equals("MRU")) {
-			unpinnedBufs++;
 			returnMRU(frameNum);
 		} else {
-			unpinnedBufs++;
 			returnLoveHate(frameNum);
 		}
+		unpinnedBufs++;
 	}
 
 	public void removeFrame(int frameNum) {
@@ -113,57 +99,34 @@ public class ReplacementPolicy {
 
 	// --------------Get-----------------
 
-	private int getFIFO() {
+	private int getFIFO() throws BufferPoolExceededException {
 		if (!fifo.isEmpty()) {
+			unpinnedBufs--;
 			return fifo.poll();
-			// for (int i = 0; i < fifo.length; i++) {
-			// // System.out.println(Arrays.toString(fifo));
-			// if (fifo[i] == -1) {
-			// return i;
-			// }
-			// }
-			// for (int i = 0; i < fifo.length; i++) {
-			// if (fifo[i] == 0) {
-			// return i;
-			// }
-			// }
 		} else {
-			try {
-				throw new FullBufferPoolExcpetion(null,
-						"FullBufferPoolExcpetion");
-			} catch (FullBufferPoolExcpetion e) {
-				e.printStackTrace();
-			}
-			return -1;
+			throw new BufferPoolExceededException(null,
+					"BUFMGR:PAGE_PIN_FAILED");
 		}
 	}
 
-	private int getLRU() {
+	private int getLRU() throws BufferPoolExceededException {
 		if (!lru.isEmpty()) {
+			unpinnedBufs--;
 			return lru.poll();
 		} else {
-			try {
-				throw new FullBufferPoolExcpetion(null,
-						"FullBufferPoolExcpetion");
-			} catch (FullBufferPoolExcpetion e) {
-				e.printStackTrace();
-			}
-			return -1;
+			throw new BufferPoolExceededException(null,
+					"BUFMGR:PAGE_PIN_FAILED");
 		}
 
 	}
 
-	private int getMRU() {
+	private int getMRU() throws BufferPoolExceededException {
 		if (!mru.isEmpty()) {
+			unpinnedBufs--;
 			return lru.poll();
 		} else {
-			try {
-				throw new FullBufferPoolExcpetion(null,
-						"FullBufferPoolExcpetion");
-			} catch (FullBufferPoolExcpetion e) {
-				e.printStackTrace();
-			}
-			return -1;
+			throw new BufferPoolExceededException(null,
+					"BUFMGR:PAGE_PIN_FAILED");
 		}
 	}
 
@@ -173,8 +136,6 @@ public class ReplacementPolicy {
 
 	// --------------Remove-----------------
 	private void removeFIFO(int frameNum) {
-		// fifo[frameNum]++;
-		// System.out.println(fifo[frameNum]);
 		fifo.remove(new Integer(frameNum));
 	}
 
@@ -193,7 +154,6 @@ public class ReplacementPolicy {
 	// --------------Return-----------------
 
 	private void returnFIFO(int frameNum) {
-		// fifo[frameNum] = 0;
 		fifo.add(frameNum);
 	}
 
@@ -207,6 +167,16 @@ public class ReplacementPolicy {
 
 	private void returnLoveHate(int frameNum) {
 
+	}
+
+	// -----------------------------------------------
+
+	public int getUnpinnedBufs() {
+		return unpinnedBufs;
+	}
+
+	public void setUnpinnedBufs(int unpinnedBufs) {
+		this.unpinnedBufs = unpinnedBufs;
 	}
 
 }
