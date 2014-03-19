@@ -8,7 +8,7 @@ import global.*;
 
 public class BufMgr {
 	private int numBufs;
-	private int counter;
+	// private int counter;
 	private byte[][] bufpool;
 	private Descriptor[] bufDescr;
 	private HashMap<Integer, Integer> map;
@@ -27,7 +27,7 @@ public class BufMgr {
 	 * */
 	public BufMgr(int numBufs, String replaceArg) {
 		this.numBufs = numBufs;
-		counter = 0;
+		// counter = 0;
 		bufpool = new byte[numBufs][GlobalConst.MINIBASE_PAGESIZE];
 		bufDescr = new Descriptor[numBufs];
 		map = new HashMap<Integer, Integer>();
@@ -66,12 +66,17 @@ public class BufMgr {
 			BufferPoolExceededException {
 		int pageFrame = getFrameNum(pgid);
 		if (pageFrame == -1) {
-
-			System.out.println("--Pin unpinnedBuffers = "
-					+ SystemDefs.JavabaseBM.getNumUnpinnedBuffers());
+			// System.out.println("--Pin unpinnedBuffers = "
+			// + SystemDefs.JavabaseBM.getNumUnpinnedBuffers());
+			// if (replacement.getUnpinnedBuffers() <= 0) {
+			// throw new BufferPoolExceededException(null,
+			// "BufferPoolExceededException");
+			// }
 			int freeFrame = replacement.getFreeFrame();
 
-			if (bufDescr[freeFrame] != null && bufDescr[freeFrame].isDirtybit()) {
+			if (bufDescr[freeFrame] != null
+					&& bufDescr[freeFrame].getPagenumber() != null
+					&& bufDescr[freeFrame].isDirtybit()) {
 				flushPage(bufDescr[freeFrame].getPagenumber());
 			}
 			if (bufDescr[freeFrame] != null
@@ -87,18 +92,27 @@ public class BufMgr {
 			page.setpage(bufpool[freeFrame]);
 
 			bufDescr[freeFrame] = new Descriptor(pgid, 1);
+			int data = Convert.getIntValue(0, page.getpage());
+			// System.out.println("--Pin " + pgid + "  at frame " + freeFrame
+			// + "  Pin_Count " + bufDescr[freeFrame].getPin_count()
+			// + " Data = " + (data - pgid.pid));
+			// + " Unpinned Buffers = "
+			// + replacement.getUnpinnedBuffers());
 		} else {
 
 			bufDescr[pageFrame]
 					.setPin_count(bufDescr[pageFrame].getPin_count() + 1);
-			// System.out.println("------------------------------");
-			// replacement.incrementIfFIFO(pageFrame);
 			replacement.removeFrame(pageFrame);
-			// System.out.println("------------------------------");
-			page.setpage(bufpool[pageFrame]);
+			Page newPage = new Page(bufpool[pageFrame]);
+			page.setpage(newPage.getpage());
+			// page.setpage(bufpool[pageFrame]);
 
-			// System.out.println("--Inc " + pgid + "\tat frame " + pageFrame
-			// + "\tPin_Count " + bufDescr[pageFrame].getPin_count());
+			int data = Convert.getIntValue(0, page.getpage());
+			// System.out.println("--Inc " + pgid + "  at frame " + pageFrame
+			// + "  Pin_Count " + bufDescr[pageFrame].getPin_count()
+			// + " Data = " + (data - pgid.pid));
+			// + " Unpinned Buffers = "
+			// + replacement.getUnpinnedBuffers());
 		}
 	}
 
@@ -114,21 +128,21 @@ public class BufMgr {
 	 *            page number in the minibase
 	 * @param dirty
 	 *            the dirty bit of the frame.
+	 * @throws PageUnpinnedExcpetion
+	 * @throws PageIdNotInTheBufferPoolExcpetion
+	 * @throws InvalidPageNumberException
 	 */
-	public void unpinPage(PageId pgid, boolean dirty, boolean loved) {
+	public void unpinPage(PageId pgid, boolean dirty, boolean loved)
+			throws PageUnpinnedExcpetion, PageIdNotInTheBufferPoolExcpetion,
+			InvalidPageNumberException {
 
 		int frame = getFrameNum(pgid);
-
+		// System.out.println("--Unpin Page " + pgid + " = "
+		// + map.containsKey(pgid.pid));
 		if (map.containsKey(pgid.pid)) {
 
 			if (bufDescr[frame].getPin_count() == 0) {
-				try {
-					throw new PageUnpinnedExcpetion(null,
-							"PageUnpinnedExcpetion");
-				} catch (PageUnpinnedExcpetion e) {
-					e.printStackTrace();
-				}
-
+				throw new PageUnpinnedExcpetion(null, "PageUnpinnedExcpetion");
 			} else {
 				bufDescr[frame]
 						.setPin_count(bufDescr[frame].getPin_count() - 1);
@@ -142,25 +156,23 @@ public class BufMgr {
 				if (bufDescr[frame].getPin_count() == 0) {
 					replacement.returnFrame(frame);
 
-					// System.out.println("--Unp " + pgid + "\tat frame " +
+					// System.out.println("--Unp " + pgid + "  at frame " +
 					// frame);
+					// + " Unpinned Buffers = "
+					// + replacement.getUnpinnedBuffers());
 				} else {
-					// System.out.println("--Inc " + pgid + "\tat frame " +
+					// System.out.println("--Dec " + pgid + "  at frame " +
 					// frame
-					// + "\tPin_Count " + bufDescr[frame].getPin_count());
-					// replacement.decrementIfFIFO(frame);
+					// + "  Pin_Count " + bufDescr[frame].getPin_count());
+					// + " Unpinned Buffers = "
+					// + replacement.getUnpinnedBuffers());
 				}
-				// System.out.println("--Buf ID " + frame + " = "
-				// + bufDescr[frame].toString() + " Unpin");
 			}
 
 		} else {
-			try {
-				throw new PageIdNotInTheBufferPoolExcpetion(null,
-						"PageIdNotInTheBufferPoolExcpetion");
-			} catch (PageIdNotInTheBufferPoolExcpetion e) {
-				e.printStackTrace();
-			}
+			// System.out.println("--Unpin Failed Page " + pgid);
+			throw new InvalidPageNumberException(null,
+					"InvalidPageNumberException");
 		}
 	}
 
@@ -195,8 +207,8 @@ public class BufMgr {
 		} else {
 			PageId pageId = new PageId();
 			SystemDefs.JavabaseDB.allocate_page(pageId, howmany);
-			Page page = new Page();
-			pinPage(pageId, page, false, false);
+			// Page page = new Page();
+			pinPage(pageId, firstPage, false, false);
 			return pageId;
 		}
 	}
@@ -212,19 +224,40 @@ public class BufMgr {
 	 * @throws FileIOException
 	 * @throws InvalidPageNumberException
 	 * @throws InvalidRunSizeException
+	 * @throws PagePinnedExcpetion
+	 * @throws PageUnpinnedExcpetion 
+	 * @throws PagePinnedException 
 	 */
 	public void freePage(PageId pgid) throws InvalidRunSizeException,
 			InvalidPageNumberException, FileIOException, DiskMgrException,
-			IOException {
+			IOException, PageUnpinnedExcpetion, PagePinnedException {
 
 		if (map.containsKey(pgid.pid)) {
 			// System.out.println("--Free unpinnedBuffers = "
 			// + SystemDefs.JavabaseBM.getNumUnpinnedBuffers());
 			// replacement.returnFrame(map.get(pgid.pid));
-			bufDescr[map.get(pgid.pid)].setPagenumber(null);
-			map.remove(pgid.pid);
+			// bufDescr[map.get(pgid.pid)].setPagenumber(null);
+			// System.out.println("--Free in " + pgid);
+
+			int frame = getFrameNum(pgid);
+			if (bufDescr[frame].getPin_count() > 1) {
+				throw new PagePinnedException(null,  "bufmgr.PagePinnedException");
+			} else {
+				bufDescr[frame] = null;
+				map.remove(pgid.pid);
+				replacement.returnFrame(pgid.pid);
+				SystemDefs.JavabaseDB.deallocate_page(pgid);
+			}
+			// System.out.println("--Free Page " + pgid + " Unpinned Buffers = "
+			// + replacement.getUnpinnedBuffers());
+		} else {
+			try {
+				SystemDefs.JavabaseDB.deallocate_page(pgid);
+			} catch (InvalidPageNumberException e) {
+				throw new InvalidPageNumberException(null,
+						"InvalidPageNumberException");
+			}
 		}
-		SystemDefs.JavabaseDB.deallocate_page(pgid);
 	}
 
 	/**
@@ -253,10 +286,10 @@ public class BufMgr {
 
 			// Page newPage = new Page(bufpool[frameNum]);
 			Page newPage = new Page(bufpool[frameNum]);
-			// if (bufDescr[frameNum].isDirtybit()) {
-			SystemDefs.JavabaseDB.write_page(pgid, newPage);
-			bufDescr[frameNum].setDirtybit(false);
-			// }
+			if (bufDescr[frameNum].isDirtybit()) {
+				SystemDefs.JavabaseDB.write_page(pgid, newPage);
+				bufDescr[frameNum].setDirtybit(false);
+			}
 
 		}
 

@@ -50,8 +50,8 @@ class BMDriver extends TestDriver implements GlobalConst {
 		String newlogpath;
 		String remove_logcmd;
 		String remove_dbcmd;
-		String remove_cmd = "cmd /k del";
 		// String remove_cmd = "/bin/rm -rf ";
+		String remove_cmd = "cmd /k del";
 
 		newdbpath = dbpath;
 		newlogpath = logpath;
@@ -109,15 +109,15 @@ class BMDriver extends TestDriver implements GlobalConst {
 		// The following runs all the test functions
 
 		// Running test1() to test6()
-		if (!test1()) {
+		// if (!test1()) {
+		// _passAll = FAIL;
+		// }
+		if (!test2()) {
 			_passAll = FAIL;
 		}
-//		if (!test2()) {
-//			_passAll = FAIL;
-//		}
-		if (!test3()) {
-			_passAll = FAIL;
-		}
+		// if (!test3()) {
+		// _passAll = FAIL;
+		// }
 		if (!test4()) {
 			_passAll = FAIL;
 		}
@@ -241,8 +241,6 @@ class BMDriver extends TestDriver implements GlobalConst {
 
 				try {
 					data = Convert.getIntValue(0, pg.getpage());
-					// System.out.println(">>Data at " + pid.pid + " = "
-					// + (data - pid.pid));
 				} catch (IOException e) {
 					System.err.print("*** Convert value failed \n");
 					status = FAIL;
@@ -253,7 +251,6 @@ class BMDriver extends TestDriver implements GlobalConst {
 						status = FAIL;
 						System.err.print("*** Read wrong data back from page "
 								+ pid.pid + "\n");
-						return false;
 					}
 				}
 
@@ -299,8 +296,7 @@ class BMDriver extends TestDriver implements GlobalConst {
 	 * @return whether test2 has passed
 	 */
 	protected boolean test2() {
-		System.out.println("\n\n unpinnedBuffers = "
-				+ SystemDefs.JavabaseBM.getNumUnpinnedBuffers() + "\n\n");
+
 		System.out.print("\n  Test 2 exercises some illegal buffer "
 				+ "manager operations:\n");
 
@@ -355,6 +351,12 @@ class BMDriver extends TestDriver implements GlobalConst {
 			try {
 				SystemDefs.JavabaseBM.pinPage(lastPid, pg, /* emptyPage: */
 						true, false);
+			} catch (ChainException e) {
+				status = checkException(e, "bufmgr.BufferPoolExceededException");
+				if (status == FAIL) {
+					System.err.print("*** Pinning too many pages\n");
+					System.out.println("  --> Failed as expected \n");
+				}
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -382,6 +384,13 @@ class BMDriver extends TestDriver implements GlobalConst {
 				System.out.print("  - Try to free a doubly-pinned page\n");
 				try {
 					SystemDefs.JavabaseBM.freePage(firstPid);
+				} catch (ChainException e) {
+					status = checkException(e, "bufmgr.PagePinnedException");
+
+					if (status == FAIL) {
+						System.err.print("*** Freeing a pinned page\n");
+						System.out.println("  --> Failed as expected \n");
+					}
 				}
 
 				catch (Exception e) {
@@ -411,6 +420,14 @@ class BMDriver extends TestDriver implements GlobalConst {
 					.print("  - Try to unpin a page not in the buffer pool\n");
 			try {
 				SystemDefs.JavabaseBM.unpinPage(lastPid, false, false);
+			} catch (ChainException e) {
+				status = checkException(e, "bufmgr.HashEntryNotFoundException");
+
+				if (status == FAIL) {
+					System.err
+							.print("*** Unpinning a page not in the buffer pool\n");
+					System.out.println("  --> Failed as expected \n");
+				}
 			} catch (Exception e) {
 				e.printStackTrace();
 			}

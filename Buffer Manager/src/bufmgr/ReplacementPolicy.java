@@ -51,9 +51,13 @@ public class ReplacementPolicy {
 
 	public int getFreeFrame() throws BufferPoolExceededException {
 		if (unpinnedBufs <= 0) {
+			// throw new BufferPoolExceededException(null,
+			// "BufferPoolExceededException");
 			throw new BufferPoolExceededException(null,
-					"BUFMGR:PAGE_PIN_FAILED");
+					"BufferPoolExceededException");
+
 		} else {
+			// System.out.println("Counter");
 			if (counter != bufferSize) {
 				unpinnedBufs--;
 				return counter++;
@@ -82,6 +86,9 @@ public class ReplacementPolicy {
 			returnLoveHate(frameNum);
 		}
 		unpinnedBufs++;
+		if (unpinnedBufs > bufferSize) {
+			unpinnedBufs = bufferSize;
+		}
 	}
 
 	public void removeFrame(int frameNum) {
@@ -95,6 +102,9 @@ public class ReplacementPolicy {
 			removeLoveHate(frameNum);
 		}
 		unpinnedBufs--;
+		// if (unpinnedBufs>bufferSize) {
+		// unpinnedBufs=bufferSize;
+		// }
 	}
 
 	// --------------Get-----------------
@@ -105,7 +115,7 @@ public class ReplacementPolicy {
 			return fifo.poll();
 		} else {
 			throw new BufferPoolExceededException(null,
-					"BUFMGR:PAGE_PIN_FAILED");
+					"BufferPoolExceededException");
 		}
 	}
 
@@ -115,7 +125,7 @@ public class ReplacementPolicy {
 			return lru.poll();
 		} else {
 			throw new BufferPoolExceededException(null,
-					"BUFMGR:PAGE_PIN_FAILED");
+					"BufferPoolExceededException");
 		}
 
 	}
@@ -126,7 +136,7 @@ public class ReplacementPolicy {
 			return lru.poll();
 		} else {
 			throw new BufferPoolExceededException(null,
-					"BUFMGR:PAGE_PIN_FAILED");
+					"BufferPoolExceededException");
 		}
 	}
 
@@ -136,15 +146,21 @@ public class ReplacementPolicy {
 
 	// --------------Remove-----------------
 	private void removeFIFO(int frameNum) {
-		fifo.remove(new Integer(frameNum));
+		if (fifo.contains(frameNum)) {
+			fifo.remove(new Integer(frameNum));
+		}
 	}
 
 	private void removeMRU(int frameNum) {
-		mru.remove(new Integer(frameNum));
+		if (mru.contains(frameNum)) {
+			mru.remove(new Integer(frameNum));
+		}
 	}
 
 	private void removeLRU(int frameNum) {
-		lru.remove(new Integer(frameNum));
+		if (lru.contains(frameNum)) {
+			lru.remove(new Integer(frameNum));
+		}
 	}
 
 	private void removeLoveHate(int frameNum) {
@@ -170,13 +186,5 @@ public class ReplacementPolicy {
 	}
 
 	// -----------------------------------------------
-
-	public int getUnpinnedBufs() {
-		return unpinnedBufs;
-	}
-
-	public void setUnpinnedBufs(int unpinnedBufs) {
-		this.unpinnedBufs = unpinnedBufs;
-	}
 
 }
