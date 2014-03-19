@@ -15,8 +15,8 @@ public class ReplacementPolicy {
 	// Love/Hate ?????
 
 	public ReplacementPolicy(int numBufs, String replaceArg) {
-		System.out.println("numBufs = " + numBufs + " replaceArg = "
-				+ replaceArg);
+		// System.out.println("numBufs = " + numBufs + " replaceArg = "
+		// + replaceArg);
 		bufferSize = numBufs;
 		unpinnedBufs = numBufs;
 		counter = 0;
@@ -26,16 +26,23 @@ public class ReplacementPolicy {
 			this.replaceArg = "FIFO";
 		} else if (replaceArg.equals("LRU")) {
 			lru = new LinkedList<Integer>();
-			for (int i = 0; i < numBufs; i++) {
-				lru.add(i);
-			}
+			// for (int i = 0; i < numBufs; i++) {
+			// lru.add(i);
+			// }
 		} else if (replaceArg.equals("MRU")) {
 			mru = new Stack<Integer>();
-			for (int i = 0; i < numBufs; i++) {
-				mru.add(i);
-			}
+			// for (int i = 0; i < numBufs; i++) {
+			// mru.add(i);
+			// }
 		} else if (replaceArg.equals("Love/Hate")) {
-
+			lru = new LinkedList<Integer>();
+			// for (int i = 0; i < numBufs; i++) {
+			// lru.add(i);
+			// }
+			mru = new Stack<Integer>();
+			// for (int i = 0; i < numBufs; i++) {
+			// mru.add(i);
+			// }
 		} else {
 			try {
 				throw new WrongArgumentExcpetion(null, "WrongArgumentExcpetion");
@@ -51,8 +58,6 @@ public class ReplacementPolicy {
 
 	public int getFreeFrame() throws BufferPoolExceededException {
 		if (unpinnedBufs <= 0) {
-			// throw new BufferPoolExceededException(null,
-			// "BufferPoolExceededException");
 			throw new BufferPoolExceededException(null,
 					"BufferPoolExceededException");
 
@@ -75,7 +80,7 @@ public class ReplacementPolicy {
 		}
 	}
 
-	public void returnFrame(int frameNum) {
+	public void returnFrame(int frameNum, boolean loved) {
 		if (replaceArg.equals("FIFO")) {
 			returnFIFO(frameNum);
 		} else if (replaceArg.equals("LRU")) {
@@ -83,7 +88,7 @@ public class ReplacementPolicy {
 		} else if (replaceArg.equals("MRU")) {
 			returnMRU(frameNum);
 		} else {
-			returnLoveHate(frameNum);
+			returnLoveHate(frameNum, loved);
 		}
 		unpinnedBufs++;
 		if (unpinnedBufs > bufferSize) {
@@ -136,15 +141,22 @@ public class ReplacementPolicy {
 	private int getMRU() throws BufferPoolExceededException {
 		if (!mru.isEmpty()) {
 			unpinnedBufs--;
-			return lru.poll();
+			return mru.pop();
 		} else {
 			throw new BufferPoolExceededException(null,
 					"BufferPoolExceededException");
 		}
 	}
 
-	private int getLoveHate() {
-		return 0;
+	private int getLoveHate() throws BufferPoolExceededException {
+		if (!lru.isEmpty()) {
+			return getLRU();
+		} else if (!mru.isEmpty()) {
+			return getMRU();
+		} else {
+			throw new BufferPoolExceededException(null,
+					"BufferPoolExceededException");
+		}
 	}
 
 	// --------------Remove-----------------
@@ -170,6 +182,11 @@ public class ReplacementPolicy {
 	}
 
 	private void removeLoveHate(int frameNum) {
+		// if (lru.contains(frameNum)) {
+		removeLRU(frameNum);
+		// } else if (mru.contains(frameNum)) {
+		removeMRU(frameNum);
+		// }
 
 	}
 
@@ -193,8 +210,31 @@ public class ReplacementPolicy {
 		}
 	}
 
-	private void returnLoveHate(int frameNum) {
+	// LRU Hated
+	// MRU LOVED
+	private void returnLoveHate(int frameNum, boolean loved) {
+		if (loved) {
+			if (lru.contains(frameNum)) {
+				lru.remove(new Integer(frameNum));
+			}
+			if (!mru.contains(frameNum)) {
+				mru.add(frameNum);
+			}
+		} else {
+			if (!mru.contains(frameNum) && !lru.contains(frameNum)) {
+				lru.add(frameNum);
+			}
+		}
 
+		// if (!mru.contains(frameNum) && !lru.contains(frameNum)) {
+		// lru.add(frameNum);
+		// }
+	}
+
+	public void returnFrameLoved(int frameNum, boolean loved) {
+		if (replaceArg.equals("Love/Hate")) {
+			returnLoveHate(frameNum, loved);
+		}
 	}
 
 	// -----------------------------------------------

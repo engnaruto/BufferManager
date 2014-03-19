@@ -37,8 +37,16 @@ class BMDriver extends TestDriver implements GlobalConst {
 		System.out.print("\n" + "Running " + testName() + " tests...." + "\n");
 
 		try {
-			SystemDefs sysdef = new SystemDefs(dbpath, NUMBUF + 20, NUMBUF,
-					"Clock");
+			 SystemDefs sysdef = new SystemDefs(dbpath, NUMBUF + 20, NUMBUF,
+			 "Clock");
+
+//			SystemDefs sysdef = new SystemDefs(dbpath, NUMBUF + 20, NUMBUF,
+//					"LRU");
+//			 SystemDefs sysdef = new SystemDefs(dbpath, NUMBUF + 20, NUMBUF,
+//			 "MRU");
+
+//			 SystemDefs sysdef = new SystemDefs(dbpath, NUMBUF + 20, NUMBUF,
+//			 "Love/Hate");
 		}
 
 		catch (Exception e) {
@@ -272,7 +280,7 @@ class BMDriver extends TestDriver implements GlobalConst {
 			System.out.print("  - Free the pages again\n");
 
 		for (pid.pid = firstPid.pid; pid.pid < lastPid.pid; pid.pid = pid.pid + 1) {
-//			System.out.println(">>Free Page " + pid);
+			// System.out.println(">>Free Page " + pid);
 			try {
 				// TODO
 				SystemDefs.JavabaseBM.freePage(pid);
@@ -297,8 +305,8 @@ class BMDriver extends TestDriver implements GlobalConst {
 	 * @return whether test2 has passed
 	 */
 	protected boolean test2() {
-		System.out.println("\n\n unpinnedBuffers = "
-				+ SystemDefs.JavabaseBM.getNumUnpinnedBuffers() + "\n\n");
+		// System.out.println("\n\n unpinnedBuffers = "
+		// + SystemDefs.JavabaseBM.getNumUnpinnedBuffers() + "\n\n");
 		System.out.print("\n  Test 2 exercises some illegal buffer "
 				+ "manager operations:\n");
 
