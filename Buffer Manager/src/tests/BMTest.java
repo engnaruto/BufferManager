@@ -109,15 +109,15 @@ class BMDriver extends TestDriver implements GlobalConst {
 		// The following runs all the test functions
 
 		// Running test1() to test6()
-		// if (!test1()) {
-		// _passAll = FAIL;
-		// }
+		if (!test1()) {
+			_passAll = FAIL;
+		}
 		if (!test2()) {
 			_passAll = FAIL;
 		}
-		// if (!test3()) {
-		// _passAll = FAIL;
-		// }
+		if (!test3()) {
+			_passAll = FAIL;
+		}
 		if (!test4()) {
 			_passAll = FAIL;
 		}
@@ -272,8 +272,9 @@ class BMDriver extends TestDriver implements GlobalConst {
 			System.out.print("  - Free the pages again\n");
 
 		for (pid.pid = firstPid.pid; pid.pid < lastPid.pid; pid.pid = pid.pid + 1) {
-
+//			System.out.println(">>Free Page " + pid);
 			try {
+				// TODO
 				SystemDefs.JavabaseBM.freePage(pid);
 			} catch (Exception e) {
 				status = FAIL;
@@ -296,7 +297,8 @@ class BMDriver extends TestDriver implements GlobalConst {
 	 * @return whether test2 has passed
 	 */
 	protected boolean test2() {
-
+		System.out.println("\n\n unpinnedBuffers = "
+				+ SystemDefs.JavabaseBM.getNumUnpinnedBuffers() + "\n\n");
 		System.out.print("\n  Test 2 exercises some illegal buffer "
 				+ "manager operations:\n");
 

@@ -101,10 +101,9 @@ public class ReplacementPolicy {
 		} else {
 			removeLoveHate(frameNum);
 		}
-		unpinnedBufs--;
-		// if (unpinnedBufs>bufferSize) {
-		// unpinnedBufs=bufferSize;
-		// }
+		if (unpinnedBufs > bufferSize) {
+			unpinnedBufs = bufferSize;
+		}
 	}
 
 	// --------------Get-----------------
@@ -112,6 +111,10 @@ public class ReplacementPolicy {
 	private int getFIFO() throws BufferPoolExceededException {
 		if (!fifo.isEmpty()) {
 			unpinnedBufs--;
+			// Object[] a = new int[0] ;
+			// a=fifo.toArray();
+			// Arrays.sort(a);
+			// System.out.println("++FIFO = " + a.toString());
 			return fifo.poll();
 		} else {
 			throw new BufferPoolExceededException(null,
@@ -147,18 +150,21 @@ public class ReplacementPolicy {
 	// --------------Remove-----------------
 	private void removeFIFO(int frameNum) {
 		if (fifo.contains(frameNum)) {
+			unpinnedBufs--;
 			fifo.remove(new Integer(frameNum));
 		}
 	}
 
 	private void removeMRU(int frameNum) {
 		if (mru.contains(frameNum)) {
+			unpinnedBufs--;
 			mru.remove(new Integer(frameNum));
 		}
 	}
 
 	private void removeLRU(int frameNum) {
 		if (lru.contains(frameNum)) {
+			unpinnedBufs--;
 			lru.remove(new Integer(frameNum));
 		}
 	}
@@ -170,15 +176,21 @@ public class ReplacementPolicy {
 	// --------------Return-----------------
 
 	private void returnFIFO(int frameNum) {
-		fifo.add(frameNum);
+		if (!fifo.contains(frameNum)) {
+			fifo.add(frameNum);
+		}
 	}
 
 	private void returnMRU(int frameNum) {
-		mru.add(frameNum);
+		if (!mru.contains(frameNum)) {
+			mru.add(frameNum);
+		}
 	}
 
 	private void returnLRU(int frameNum) {
-		lru.add(frameNum);
+		if (!lru.contains(frameNum)) {
+			lru.add(frameNum);
+		}
 	}
 
 	private void returnLoveHate(int frameNum) {
