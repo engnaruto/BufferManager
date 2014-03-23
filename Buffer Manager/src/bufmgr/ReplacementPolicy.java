@@ -238,5 +238,31 @@ public class ReplacementPolicy {
 	}
 
 	// -----------------------------------------------
-
+	// public void resetPolicy() {
+	// if (replaceArg.equals("FIFO") || replaceArg.equals("Clock")) {
+	// fifo = new PriorityQueue<Integer>();
+	// // this.replaceArg = "FIFO";
+	// } else if (replaceArg.equals("LRU")) {
+	// lru = new LinkedList<Integer>();
+	// // for (int i = 0; i < numBufs; i++) {
+	// // lru.add(i);
+	// // }
+	// } else if (replaceArg.equals("MRU")) {
+	// mru = new Stack<Integer>();
+	// // for (int i = 0; i < numBufs; i++) {
+	// // mru.add(i);
+	// // }
+	// } else if (replaceArg.equals("Love/Hate")) {
+	// lru = new LinkedList<Integer>();
+	// // for (int i = 0; i < numBufs; i++) {
+	// // lru.add(i);
+	// // }
+	// mru = new Stack<Integer>();
+	// // for (int i = 0; i < numBufs; i++) {
+	// // mru.add(i);
+	// // }
+	// }
+	// counter = 0;
+	// unpinnedBufs = bufferSize;
+	// }
 }

@@ -37,16 +37,17 @@ class BMDriver extends TestDriver implements GlobalConst {
 		System.out.print("\n" + "Running " + testName() + " tests...." + "\n");
 
 		try {
-			 SystemDefs sysdef = new SystemDefs(dbpath, NUMBUF + 20, NUMBUF,
-			 "Clock");
+			SystemDefs sysdef = new SystemDefs(dbpath, NUMBUF + 20, NUMBUF,
+					"Clock");
 
-//			SystemDefs sysdef = new SystemDefs(dbpath, NUMBUF + 20, NUMBUF,
-//					"LRU");
-//			 SystemDefs sysdef = new SystemDefs(dbpath, NUMBUF + 20, NUMBUF,
-//			 "MRU");
+			// SystemDefs sysdef = new SystemDefs(dbpath, NUMBUF + 20, NUMBUF,
+			// "LRU");
 
-//			 SystemDefs sysdef = new SystemDefs(dbpath, NUMBUF + 20, NUMBUF,
-//			 "Love/Hate");
+			// SystemDefs sysdef = new SystemDefs(dbpath, NUMBUF + 20, NUMBUF,
+			// "MRU");
+
+			// SystemDefs sysdef = new SystemDefs(dbpath, NUMBUF + 20, NUMBUF,
+			// "Love/Hate");
 		}
 
 		catch (Exception e) {
@@ -116,25 +117,31 @@ class BMDriver extends TestDriver implements GlobalConst {
 
 		// The following runs all the test functions
 
-		// Running test1() to test6()
-		if (!test1()) {
-			_passAll = FAIL;
-		}
-		if (!test2()) {
-			_passAll = FAIL;
-		}
-		if (!test3()) {
-			_passAll = FAIL;
-		}
-		if (!test4()) {
-			_passAll = FAIL;
-		}
-		if (!test5()) {
-			_passAll = FAIL;
-		}
-		if (!test6()) {
-			_passAll = FAIL;
-		}
+//		 Running test1() to test6()
+		 if (!test1()) {
+		 _passAll = FAIL;
+		 }
+		 if (!test2()) {
+		 _passAll = FAIL;
+		 }
+		 if (!test3()) {
+		 _passAll = FAIL;
+		 }
+		 if (!test4()) {
+		 _passAll = FAIL;
+		 }
+		 if (!test5()) {
+		 _passAll = FAIL;
+		 }
+		 if (!test6()) {
+		 _passAll = FAIL;
+		 }
+//		if (!test7()) {
+//			_passAll = FAIL;
+//		}
+//		if (!test8()) {
+//			_passAll = FAIL;
+//		}
 
 		return _passAll;
 	}
@@ -282,7 +289,6 @@ class BMDriver extends TestDriver implements GlobalConst {
 		for (pid.pid = firstPid.pid; pid.pid < lastPid.pid; pid.pid = pid.pid + 1) {
 			// System.out.println(">>Free Page " + pid);
 			try {
-				// TODO
 				SystemDefs.JavabaseBM.freePage(pid);
 			} catch (Exception e) {
 				status = FAIL;
@@ -604,8 +610,163 @@ class BMDriver extends TestDriver implements GlobalConst {
 	 * @return whether test4 has passed
 	 */
 	protected boolean test4() {
+		try {
+			SystemDefs.JavabaseDB.DBDestroy();
+		} catch (IOException e2) {
+			e2.printStackTrace();
+		}
+		SystemDefs sysdef = new SystemDefs(dbpath, NUMBUF + 20, NUMBUF, "LRU");
 
-		return true;
+		System.out.print("\n  Test 4 does a simple test of normal buffer ");
+		System.out.print("manager operations with LRU Replacement Policy:\n");
+
+		// We choose this number to ensure that at least one page will have to
+		// be
+		// written during this test.
+		boolean status = OK;
+		int numPages = SystemDefs.JavabaseBM.getNumUnpinnedBuffers() + 1;
+		Page pg = new Page();
+		PageId pid;
+		PageId lastPid;
+		PageId firstPid = new PageId();
+
+		System.out.print("  - Allocate a bunch of new pages\n");
+
+		try {
+			firstPid = SystemDefs.JavabaseBM.newPage(pg, numPages);
+		} catch (Exception e) {
+			System.err.print("*** Could not allocate " + numPages);
+			System.err.print(" new pages in the database.\n");
+			e.printStackTrace();
+			return false;
+		}
+
+		// Unpin that first page... to simplify our loop.
+		try {
+			SystemDefs.JavabaseBM.unpinPage(firstPid, false /* not dirty */,
+					false);
+		} catch (Exception e) {
+			System.err.print("*** Could not unpin the first new page.\n");
+			e.printStackTrace();
+			status = FAIL;
+		}
+
+		System.out.print("  - Write something on each one\n");
+
+		pid = new PageId();
+		lastPid = new PageId();
+
+		for (pid.pid = firstPid.pid, lastPid.pid = pid.pid + numPages; status == OK
+				&& pid.pid < lastPid.pid; pid.pid = pid.pid + 1) {
+
+			try {
+				SystemDefs.JavabaseBM.pinPage(pid, pg, /* emptyPage: */true,
+						false);
+			} catch (Exception e) {
+				status = FAIL;
+				System.err
+						.print("*** Could not pin new page " + pid.pid + "\n");
+				e.printStackTrace();
+			}
+
+			if (status == OK) {
+
+				// Copy the page number + 99999 onto each page. It seems
+				// unlikely that this bit pattern would show up there by
+				// coincidence.
+				int data = pid.pid + 99999;
+
+				try {
+					Convert.setIntValue(data, 0, pg.getpage());
+				} catch (IOException e) {
+					System.err.print("*** Convert value failed\n");
+					status = FAIL;
+				}
+
+				if (status == OK) {
+					try {
+						SystemDefs.JavabaseBM.unpinPage(pid, /* dirty: */true,
+								false);
+					} catch (Exception e) {
+						status = FAIL;
+						System.err.print("*** Could not unpin dirty page "
+								+ pid.pid + "\n");
+						e.printStackTrace();
+					}
+				}
+			}
+		}
+
+		if (status == OK)
+			System.out.print("  - Read that something back from each one\n"
+					+ "   (because we're buffering, this is where "
+					+ "most of the writes happen)\n");
+
+		for (pid.pid = firstPid.pid; status == OK && pid.pid < lastPid.pid; pid.pid = pid.pid + 1) {
+
+			try {
+				SystemDefs.JavabaseBM.pinPage(pid, pg, /* emptyPage: */false,
+						false);
+			} catch (Exception e) {
+				status = FAIL;
+				System.err.print("*** Could not pin page " + pid.pid + "\n");
+				e.printStackTrace();
+			}
+
+			if (status == OK) {
+
+				int data = 0;
+
+				try {
+					data = Convert.getIntValue(0, pg.getpage());
+				} catch (IOException e) {
+					System.err.print("*** Convert value failed \n");
+					status = FAIL;
+				}
+
+				if (status == OK) {
+					if (data != (pid.pid) + 99999) {
+						status = FAIL;
+						System.err.print("*** Read wrong data back from page "
+								+ pid.pid + "\n");
+					}
+				}
+
+				if (status == OK) {
+					try {
+						SystemDefs.JavabaseBM.unpinPage(pid, /* dirty: */true,
+								false);
+					} catch (Exception e) {
+						status = FAIL;
+						System.err.print("*** Could not unpin page " + pid.pid
+								+ "\n");
+						e.printStackTrace();
+					}
+				}
+			}
+		}
+
+		if (status == OK)
+			System.out.print("  - Free the pages again\n");
+
+		for (pid.pid = firstPid.pid; pid.pid < lastPid.pid; pid.pid = pid.pid + 1) {
+			// System.out.println(">>Free Page " + pid);
+			try {
+
+				SystemDefs.JavabaseBM.freePage(pid);
+			} catch (Exception e) {
+				status = FAIL;
+				System.err.print("*** Error freeing page " + pid.pid + "\n");
+				e.printStackTrace();
+			}
+
+		}
+
+		if (status == OK)
+			System.out.print("  Test 4 completed successfully.\n");
+
+		return status;
+		// return true;
 	}
 
 	/**
@@ -614,8 +775,164 @@ class BMDriver extends TestDriver implements GlobalConst {
 	 * @return whether test5 has passed
 	 */
 	protected boolean test5() {
+		try {
+			SystemDefs.JavabaseDB.DBDestroy();
+		} catch (IOException e2) {
+			e2.printStackTrace();
+		}
+		SystemDefs sysdef = new SystemDefs(dbpath, NUMBUF + 20, NUMBUF, "MRU");
+		// SystemDefs sysdef = new SystemDefs(dbpath, NUMBUF + 20, NUMBUF,
+		// "LRU");
 
-		return true;
+		System.out.print("\n  Test 5 does a simple test of normal buffer ");
+		System.out.print("manager operations with MRU Replacement Policy:\n");
+
+		// We choose this number to ensure that at least one page will have to
+		// be
+		// written during this test.
+		boolean status = OK;
+		int numPages = SystemDefs.JavabaseBM.getNumUnpinnedBuffers() + 1;
+		Page pg = new Page();
+		PageId pid;
+		PageId lastPid;
+		PageId firstPid = new PageId();
+
+		System.out.print("  - Allocate a bunch of new pages\n");
+
+		try {
+			firstPid = SystemDefs.JavabaseBM.newPage(pg, numPages);
+		} catch (Exception e) {
+			System.err.print("*** Could not allocate " + numPages);
+			System.err.print(" new pages in the database.\n");
+			e.printStackTrace();
+			return false;
+		}
+
+		// Unpin that first page... to simplify our loop.
+		try {
+			SystemDefs.JavabaseBM.unpinPage(firstPid, false /* not dirty */,
+					false);
+		} catch (Exception e) {
+			System.err.print("*** Could not unpin the first new page.\n");
+			e.printStackTrace();
+			status = FAIL;
+		}
+
+		System.out.print("  - Write something on each one\n");
+
+		pid = new PageId();
+		lastPid = new PageId();
+
+		for (pid.pid = firstPid.pid, lastPid.pid = pid.pid + numPages; status == OK
+				&& pid.pid < lastPid.pid; pid.pid = pid.pid + 1) {
+
+			try {
+				SystemDefs.JavabaseBM.pinPage(pid, pg, /* emptyPage: */true,
+						false);
+			} catch (Exception e) {
+				status = FAIL;
+				System.err
+						.print("*** Could not pin new page " + pid.pid + "\n");
+				e.printStackTrace();
+			}
+
+			if (status == OK) {
+
+				// Copy the page number + 99999 onto each page. It seems
+				// unlikely that this bit pattern would show up there by
+				// coincidence.
+				int data = pid.pid + 99999;
+
+				try {
+					Convert.setIntValue(data, 0, pg.getpage());
+				} catch (IOException e) {
+					System.err.print("*** Convert value failed\n");
+					status = FAIL;
+				}
+
+				if (status == OK) {
+					try {
+						SystemDefs.JavabaseBM.unpinPage(pid, /* dirty: */true,
+								false);
+					} catch (Exception e) {
+						status = FAIL;
+						System.err.print("*** Could not unpin dirty page "
+								+ pid.pid + "\n");
+						e.printStackTrace();
+					}
+				}
+			}
+		}
+
+		if (status == OK)
+			System.out.print("  - Read that something back from each one\n"
+					+ "   (because we're buffering, this is where "
+					+ "most of the writes happen)\n");
+
+		for (pid.pid = firstPid.pid; status == OK && pid.pid < lastPid.pid; pid.pid = pid.pid + 1) {
+
+			try {
+				SystemDefs.JavabaseBM.pinPage(pid, pg, /* emptyPage: */false,
+						false);
+			} catch (Exception e) {
+				status = FAIL;
+				System.err.print("*** Could not pin page " + pid.pid + "\n");
+				e.printStackTrace();
+			}
+
+			if (status == OK) {
+
+				int data = 0;
+
+				try {
+					data = Convert.getIntValue(0, pg.getpage());
+				} catch (IOException e) {
+					System.err.print("*** Convert value failed \n");
+					status = FAIL;
+				}
+
+				if (status == OK) {
+					if (data != (pid.pid) + 99999) {
+						status = FAIL;
+						System.err.print("*** Read wrong data back from page "
+								+ pid.pid + "\n");
+					}
+				}
+
+				if (status == OK) {
+					try {
+						SystemDefs.JavabaseBM.unpinPage(pid, /* dirty: */true,
+								false);
+					} catch (Exception e) {
+						status = FAIL;
+						System.err.print("*** Could not unpin page " + pid.pid
+								+ "\n");
+						e.printStackTrace();
+					}
+				}
+			}
+		}
+
+		if (status == OK)
+			System.out.print("  - Free the pages again\n");
+
+		for (pid.pid = firstPid.pid; pid.pid < lastPid.pid; pid.pid = pid.pid + 1) {
+			// System.out.println(">>Free Page " + pid);
+			try {
+				SystemDefs.JavabaseBM.freePage(pid);
+			} catch (Exception e) {
+				status = FAIL;
+				System.err.print("*** Error freeing page " + pid.pid + "\n");
+				e.printStackTrace();
+			}
+
+		}
+
+		if (status == OK)
+			System.out.print("  Test 5 completed successfully.\n");
+
+		return status;
+		// return true;
 	}
 
 	/**
@@ -624,7 +941,243 @@ class BMDriver extends TestDriver implements GlobalConst {
 	 * @return whether test6 has passed
 	 */
 	protected boolean test6() {
+		try {
+			SystemDefs.JavabaseDB.DBDestroy();
+		} catch (IOException e2) {
+			e2.printStackTrace();
+		}
+		SystemDefs sysdef = new SystemDefs(dbpath, NUMBUF + 20, NUMBUF,
+				"Love/Hate");
+		// SystemDefs sysdef = new SystemDefs(dbpath, NUMBUF + 20, NUMBUF,
+		// "LRU");
 
+		System.out.print("\n  Test 6 does a simple test of normal buffer ");
+		System.out
+				.print("manager operations with Love/Hate Replacement Policy:\n");
+
+		// We choose this number to ensure that at least one page will have to
+		// be
+		// written during this test.
+		boolean status = OK;
+		int numPages = SystemDefs.JavabaseBM.getNumUnpinnedBuffers() + 1;
+		Page pg = new Page();
+		PageId pid;
+		PageId lastPid;
+		PageId firstPid = new PageId();
+
+		System.out.print("  - Allocate a bunch of new pages\n");
+
+		try {
+			firstPid = SystemDefs.JavabaseBM.newPage(pg, numPages);
+		} catch (Exception e) {
+			System.err.print("*** Could not allocate " + numPages);
+			System.err.print(" new pages in the database.\n");
+			e.printStackTrace();
+			return false;
+		}
+
+		// Unpin that first page... to simplify our loop.
+		try {
+			SystemDefs.JavabaseBM.unpinPage(firstPid, false /* not dirty */,
+					false);
+		} catch (Exception e) {
+			System.err.print("*** Could not unpin the first new page.\n");
+			e.printStackTrace();
+			status = FAIL;
+		}
+
+		System.out.print("  - Write something on each one\n");
+
+		pid = new PageId();
+		lastPid = new PageId();
+
+		for (pid.pid = firstPid.pid, lastPid.pid = pid.pid + numPages; status == OK
+				&& pid.pid < lastPid.pid; pid.pid = pid.pid + 1) {
+
+			try {
+				SystemDefs.JavabaseBM.pinPage(pid, pg, /* emptyPage: */true,
+						false);
+			} catch (Exception e) {
+				status = FAIL;
+				System.err
+						.print("*** Could not pin new page " + pid.pid + "\n");
+				e.printStackTrace();
+			}
+
+			if (status == OK) {
+
+				// Copy the page number + 99999 onto each page. It seems
+				// unlikely that this bit pattern would show up there by
+				// coincidence.
+				int data = pid.pid + 99999;
+
+				try {
+					Convert.setIntValue(data, 0, pg.getpage());
+				} catch (IOException e) {
+					System.err.print("*** Convert value failed\n");
+					status = FAIL;
+				}
+
+				if (status == OK) {
+					try {
+						SystemDefs.JavabaseBM.unpinPage(pid, /* dirty: */true,
+								false);
+					} catch (Exception e) {
+						status = FAIL;
+						System.err.print("*** Could not unpin dirty page "
+								+ pid.pid + "\n");
+						e.printStackTrace();
+					}
+				}
+			}
+		}
+
+		if (status == OK)
+			System.out.print("  - Read that something back from each one\n"
+					+ "   (because we're buffering, this is where "
+					+ "most of the writes happen)\n");
+
+		for (pid.pid = firstPid.pid; status == OK && pid.pid < lastPid.pid; pid.pid = pid.pid + 1) {
+
+			try {
+				SystemDefs.JavabaseBM.pinPage(pid, pg, /* emptyPage: */false,
+						false);
+			} catch (Exception e) {
+				status = FAIL;
+				System.err.print("*** Could not pin page " + pid.pid + "\n");
+				e.printStackTrace();
+			}
+
+			if (status == OK) {
+
+				int data = 0;
+
+				try {
+					data = Convert.getIntValue(0, pg.getpage());
+				} catch (IOException e) {
+					System.err.print("*** Convert value failed \n");
+					status = FAIL;
+				}
+
+				if (status == OK) {
+					if (data != (pid.pid) + 99999) {
+						status = FAIL;
+						System.err.print("*** Read wrong data back from page "
+								+ pid.pid + "\n");
+					}
+				}
+
+				if (status == OK) {
+					try {
+						SystemDefs.JavabaseBM.unpinPage(pid, /* dirty: */true,
+								false);
+					} catch (Exception e) {
+						status = FAIL;
+						System.err.print("*** Could not unpin page " + pid.pid
+								+ "\n");
+						e.printStackTrace();
+					}
+				}
+			}
+		}
+
+		if (status == OK)
+			System.out.print("  - Free the pages again\n");
+
+		for (pid.pid = firstPid.pid; pid.pid < lastPid.pid; pid.pid = pid.pid + 1) {
+			// System.out.println(">>Free Page " + pid);
+			try {
+				SystemDefs.JavabaseBM.freePage(pid);
+			} catch (Exception e) {
+				status = FAIL;
+				System.err.print("*** Error freeing page " + pid.pid + "\n");
+				e.printStackTrace();
+			}
+
+		}
+
+		if (status == OK)
+			System.out.print("  Test 6 completed successfully.\n");
+
+		return status;
+		// return true;
+	}
+
+	protected boolean test7() {
+		try {
+			SystemDefs.JavabaseDB.DBDestroy();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		SystemDefs sysdef = new SystemDefs(dbpath, 3 + 20, 3, "FIFO");
+		System.out.println("---------------------------------------------");
+		System.out.print(">>Test 7 does a simple test of normal buffer ");
+		System.out
+				.print("manager operations\n  with FIFO Replacement Policy:\n\n");
+
+		PageId id0 = new PageId(0);
+		PageId id1 = new PageId(1);
+		PageId id2 = new PageId(2);
+		PageId id3 = new PageId(3);
+		Page page = new Page();
+		try {
+			SystemDefs.JavabaseBM.pinPage(id0, page, false, false);
+			SystemDefs.JavabaseBM.pinPage(id1, page, false, false);
+			SystemDefs.JavabaseBM.pinPage(id2, page, false, false);
+			SystemDefs.JavabaseBM.unpinPage(id0, false, false);
+			SystemDefs.JavabaseBM.unpinPage(id1, false, false);
+			SystemDefs.JavabaseBM.unpinPage(id2, false, false);
+			SystemDefs.JavabaseBM.pinPage(id0, page, false, false);
+			SystemDefs.JavabaseBM.unpinPage(id0, false, false);
+			SystemDefs.JavabaseBM.pinPage(id3, page, false, false);
+		} catch (ChainException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		System.out.print(">>Test 7 completed successfully.\n");
+		System.out.println("---------------------------------------------");
+		return true;
+	}
+
+	protected boolean test8() {
+		try {
+			SystemDefs.JavabaseDB.DBDestroy();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		SystemDefs sysdef = new SystemDefs(dbpath, 3 + 20, 3, "LRU");
+		System.out.println("---------------------------------------------");
+		System.out.print(">>Test 8 does a simple test of normal buffer ");
+		System.out
+				.print("manager operations\n  with LRU Replacement Policy:\n\n");
+
+		PageId id0 = new PageId(0);
+		PageId id1 = new PageId(1);
+		PageId id2 = new PageId(2);
+		PageId id3 = new PageId(3);
+		Page page = new Page();
+		try {
+			SystemDefs.JavabaseBM.pinPage(id0, page, false, false);
+			SystemDefs.JavabaseBM.pinPage(id1, page, false, false);
+			SystemDefs.JavabaseBM.pinPage(id2, page, false, false);
+			SystemDefs.JavabaseBM.unpinPage(id0, false, false);
+			SystemDefs.JavabaseBM.unpinPage(id1, false, false);
+			SystemDefs.JavabaseBM.unpinPage(id2, false, false);
+			SystemDefs.JavabaseBM.pinPage(id0, page, false, false);
+			SystemDefs.JavabaseBM.unpinPage(id0, false, false);
+			SystemDefs.JavabaseBM.pinPage(id3, page, false, false);
+		} catch (ChainException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		System.out.print(">>Test 8 completed successfully.\n");
+		System.out.println("---------------------------------------------");
 		return true;
 	}
 

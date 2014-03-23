@@ -64,7 +64,8 @@ public class BufMgr {
 			throws BufferPoolExceededException, InvalidPageNumberException,
 			FileIOException, IOException {
 		int pageFrame = getFrameNum(pgid);
-		// System.out.println("\n--Hash Size = " + map.size()+"\n");
+		// System.out.println("\n--Hash Size = " + map.size() + "\n");
+		// System.out.println(map.toString());
 		if (pageFrame == -1) {
 			// System.out.println("--Pin unpinnedBuffers = "
 			// + SystemDefs.JavabaseBM.getNumUnpinnedBuffers());
@@ -83,12 +84,7 @@ public class BufMgr {
 				// map.remove(bufDescr[freeFrame].getPagenumber());
 				map.remove(bufDescr[freeFrame].getPagenumber().pid);
 			}
-			// if (bufDescr[freeFrame] != null
-			// && bufDescr[freeFrame].getPagenumber() != null
-			// && map.containsKey(bufDescr[freeFrame].getPagenumber().pid)) {
-			// }
 
-			// map.put(new PageId(pgid.pid), freeFrame);
 			map.put(pgid.pid, freeFrame);
 			Page newPage = new Page();
 			SystemDefs.JavabaseDB.read_page(pgid, newPage);
@@ -109,9 +105,9 @@ public class BufMgr {
 			bufDescr[pageFrame]
 					.setPin_count(bufDescr[pageFrame].getPin_count() + 1);
 			replacement.removeFrame(pageFrame);
-			Page newPage = new Page(bufpool[pageFrame]);
-			page.setpage(newPage.getpage());
-			// page.setpage(bufpool[pageFrame]);
+			page.setpage(bufpool[pageFrame]);
+//			Page newPage = new Page(bufpool[pageFrame]);
+//			page.setpage(newPage.getpage());
 
 			// int data = Convert.getIntValue(0, page.getpage());
 			// System.out
@@ -345,5 +341,4 @@ public class BufMgr {
 			return -1;
 		}
 	}
-
 }
